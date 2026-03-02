@@ -24,6 +24,20 @@ export function useAuth() {
     }
   }, [supabase]);
 
+  const signInWithEmail = useCallback(
+    async (email: string, password: string) => {
+      if (!supabase) return;
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) {
+        throw error;
+      }
+    },
+    [supabase]
+  );
+
   const signOut = useCallback(async () => {
     if (!supabase) return;
     const { error } = await supabase.auth.signOut();
@@ -32,5 +46,5 @@ export function useAuth() {
     }
   }, [supabase]);
 
-  return { signInWithAzure, signOut };
+  return { signInWithAzure, signInWithEmail, signOut };
 }
