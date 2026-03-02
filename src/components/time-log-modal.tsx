@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 interface Client {
@@ -22,6 +22,13 @@ interface ExistingLog {
   caseNoteRef: string | null;
 }
 
+interface CalendarEvent {
+  id: string;
+  title: string;
+  start: Date;
+  end: Date;
+}
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;
@@ -34,6 +41,7 @@ interface Props {
   workDayStart: string; // "08:00:00"
   workDayEnd: string;   // "16:30:00"
   existingLog?: ExistingLog;
+  existingEvents: CalendarEvent[];
   onSaved: () => void;
 }
 
@@ -93,6 +101,7 @@ export default function TimeLogModal({
   workDayStart,
   workDayEnd,
   existingLog,
+  existingEvents,
   onSaved,
 }: Props) {
   const wdStart = normalizeTime(workDayStart);
@@ -121,6 +130,20 @@ export default function TimeLogModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, start, end, existingLog]);
 
+  // Live overlap check — updates as the user changes start/end times
+  const overlapConflict = useMemo(() => {
+    const s = buildTimestamp(start, startTime);
+    const e = buildTimestamp(start, endTime);
+    return (
+      existingEvents.find(
+        (ev) =>
+          ev.id !== existingLog?.id &&
+          ev.start.toISOString() < e &&
+          ev.end.toISOString() > s
+      ) ?? null
+    );
+  }, [start, startTime, endTime, existingEvents, existingLog]);
+
   // When start changes, push end forward if it's no longer after start
   const handleStartChange = (val: string) => {
     setStartTime(val);
@@ -139,11 +162,15 @@ export default function TimeLogModal({
       setError("Please select a client.");
       return;
     }
+    if (overlapConflict) {
+      setError(`Overlaps with "${overlapConflict.title}" — adjust the times to fix this.`);
+      return;
+    }
     setLoading(true);
     setError(null);
     const supabase = createClient();
 
-    // Check for overlapping time logs for this caseworker
+    // Server-side overlap check as a safety net for stale state
     const overlapQuery = supabase
       .from("time_logs")
       .select("id")
@@ -211,6 +238,12 @@ export default function TimeLogModal({
         <h2 className="mb-5 text-base font-semibold text-gray-900">
           {existingLog ? "Edit Time Entry" : "New Time Entry"}
         </h2>
+
+        {overlapConflict && (
+          <div className="mb-4 rounded-lg bg-amber-50 px-3 py-2.5 text-sm text-amber-800 ring-1 ring-amber-200">
+            Overlaps with <span className="font-medium">&ldquo;{overlapConflict.title}&rdquo;</span> — adjust the times above to resolve before saving.
+          </div>
+        )}
 
         {error && (
           <div className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">

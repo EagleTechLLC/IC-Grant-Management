@@ -5,7 +5,7 @@ import "react-big-calendar/lib/css/react-big-calendar.css";
 import { Calendar, dateFnsLocalizer, SlotInfo, Event } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay, startOfDay, endOfDay } from "date-fns";
 import { enUS } from "date-fns/locale";
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import TimeLogModal from "@/components/time-log-modal";
 
@@ -70,14 +70,6 @@ export default function TimeGrid({
   const [editingLog, setEditingLog] = useState<
     (TimeLogEvent["resource"] & { id: string }) | undefined
   >();
-  const [toast, setToast] = useState<string | null>(null);
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const showToast = useCallback((msg: string) => {
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    setToast(msg);
-    toastTimer.current = setTimeout(() => setToast(null), 3500);
-  }, []);
 
   const fetchEvents = useCallback(
     async (date: Date) => {
@@ -125,25 +117,13 @@ export default function TimeGrid({
     fetchEvents(currentDate);
   }, [currentDate, fetchEvents]);
 
-  const handleSelectSlot = useCallback(
-    ({ start, end, action }: SlotInfo) => {
-      if (action !== "select") return;
-
-      const conflict = events.find(
-        (e) => (e.start as Date) < end && (e.end as Date) > start
-      );
-      if (conflict) {
-        showToast(`Overlaps with "${conflict.title}" — try a different window.`);
-        return;
-      }
-
-      setModalStart(start);
-      setModalEnd(end);
-      setEditingLog(undefined);
-      setModalOpen(true);
-    },
-    [events, showToast]
-  );
+  const handleSelectSlot = useCallback(({ start, end, action }: SlotInfo) => {
+    if (action !== "select") return;
+    setModalStart(start);
+    setModalEnd(end);
+    setEditingLog(undefined);
+    setModalOpen(true);
+  }, []);
 
   const handleSelectEvent = useCallback((event: TimeLogEvent) => {
     setModalStart(event.start as Date);
@@ -188,15 +168,14 @@ export default function TimeGrid({
         workDayStart={workDayStart}
         workDayEnd={workDayEnd}
         existingLog={editingLog}
+        existingEvents={events.map((e) => ({
+          id: e.id,
+          title: (e.title as string) ?? "",
+          start: e.start as Date,
+          end: e.end as Date,
+        }))}
         onSaved={() => fetchEvents(currentDate)}
       />
-
-      {/* Overlap toast */}
-      {toast && (
-        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-lg bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 shadow-lg ring-1 ring-amber-200">
-          {toast}
-        </div>
-      )}
     </>
   );
 }
