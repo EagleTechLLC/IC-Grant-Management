@@ -3,6 +3,8 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export default function LoginPage() {
   const { signInWithAzure, signInWithEmail } = useAuth();
@@ -37,58 +39,59 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="rounded-lg bg-white p-8 shadow-md">
-      <h1 className="mb-6 text-center text-2xl font-bold text-gray-900">
+    <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
+      <h1 className="mb-1 text-center text-2xl font-semibold tracking-tight text-foreground">
         International Center
       </h1>
-      <p className="mb-8 text-center text-sm text-gray-600">
+      <p className="mb-8 text-center text-sm text-muted-foreground">
         Sign in with your organization account
       </p>
 
       {error && (
-        <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700">
+        <div className="mb-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}
         </div>
       )}
 
-      <button
+      <Button
         onClick={handleMicrosoftLogin}
         disabled={loading}
-        className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
+        className="w-full"
       >
-        {loading ? "Signing in..." : "Sign in with Microsoft"}
-      </button>
+        {loading ? "Signing in…" : "Sign in with Microsoft"}
+      </Button>
 
       <div className="my-6 flex items-center gap-3">
-        <div className="h-px flex-1 bg-gray-200" />
-        <span className="text-xs text-gray-400">or</span>
-        <div className="h-px flex-1 bg-gray-200" />
+        <div className="h-px flex-1 bg-border" />
+        <span className="text-xs text-muted-foreground">or</span>
+        <div className="h-px flex-1 bg-border" />
       </div>
 
       <form onSubmit={handleEmailLogin} className="space-y-3">
-        <input
+        <Input
           type="email"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+          disabled={loading}
         />
-        <input
+        <Input
           type="password"
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-        />
-        <button
-          type="submit"
           disabled={loading}
-          className="w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+        />
+        <Button
+          type="submit"
+          variant="outline"
+          disabled={loading}
+          className="w-full"
         >
-          {loading ? "Signing in..." : "Sign in with email"}
-        </button>
+          {loading ? "Signing in…" : "Sign in with email"}
+        </Button>
       </form>
     </div>
   );

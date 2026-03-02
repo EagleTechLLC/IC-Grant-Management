@@ -2,6 +2,16 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Combobox } from "@/components/ui/combobox";
 
 interface Client {
   id: string;
@@ -38,14 +48,13 @@ interface Props {
   grants: Grant[];
   userId: string;
   orgId: string;
-  workDayStart: string; // "08:00:00"
-  workDayEnd: string;   // "16:30:00"
+  workDayStart: string;
+  workDayEnd: string;
   existingLog?: ExistingLog;
   existingEvents: CalendarEvent[];
   onSaved: () => void;
 }
 
-// "08:00:00" or "08:00" → "08:00"
 function normalizeTime(t: string): string {
   return t.slice(0, 5);
 }
@@ -77,9 +86,7 @@ function generateTimeOptions(start: string, end: string) {
 function addMinutes(timeStr: string, minutes: number): string {
   const [h, m] = timeStr.split(":").map(Number);
   const total = h * 60 + m + minutes;
-  const nh = Math.floor(total / 60);
-  const nm = total % 60;
-  return `${String(nh).padStart(2, "0")}:${String(nm).padStart(2, "0")}`;
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 }
 
 function buildTimestamp(baseDate: Date, timeStr: string): string {
@@ -107,7 +114,6 @@ export default function TimeLogModal({
   const wdStart = normalizeTime(workDayStart);
   const wdEnd = normalizeTime(workDayEnd);
   const timeOptions = generateTimeOptions(wdStart, wdEnd);
-
   const clamp = (t: string) => (t < wdStart ? wdStart : t > wdEnd ? wdEnd : t);
 
   const [startTime, setStartTime] = useState(clamp(dateToTimeStr(start)));
@@ -118,7 +124,6 @@ export default function TimeLogModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Reset state whenever the modal opens for a new slot or event
   useEffect(() => {
     if (!isOpen) return;
     setStartTime(clamp(dateToTimeStr(start)));
@@ -130,7 +135,6 @@ export default function TimeLogModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, start, end, existingLog]);
 
-  // Live overlap check — updates as the user changes start/end times
   const overlapConflict = useMemo(() => {
     const s = buildTimestamp(start, startTime);
     const e = buildTimestamp(start, endTime);
@@ -144,7 +148,6 @@ export default function TimeLogModal({
     );
   }, [start, startTime, endTime, existingEvents, existingLog]);
 
-  // When start changes, push end forward if it's no longer after start
   const handleStartChange = (val: string) => {
     setStartTime(val);
     if (endTime <= val) {
@@ -153,9 +156,21 @@ export default function TimeLogModal({
     }
   };
 
-  if (!isOpen) return null;
-
   const endOptions = timeOptions.filter((o) => o.value > startTime);
+
+  // Build combobox options
+  const clientOptions = clients.map((c) => ({
+    value: c.id,
+    label: `${c.last_name}, ${c.first_name}`,
+  }));
+
+  const grantOptions = [
+    { value: "", label: "No grant" },
+    ...grants.map((g) => ({
+      value: g.id,
+      label: `${g.grant_code} — ${g.name}`,
+    })),
+  ];
 
   const handleSave = async () => {
     if (!clientId) {
@@ -166,11 +181,12 @@ export default function TimeLogModal({
       setError(`Overlaps with "${overlapConflict.title}" — adjust the times to fix this.`);
       return;
     }
+
     setLoading(true);
     setError(null);
     const supabase = createClient();
 
-    // Server-side overlap check as a safety net for stale state
+    // Server-side safety net for stale state
     const overlapQuery = supabase
       .from("time_logs")
       .select("id")
@@ -230,38 +246,41 @@ export default function TimeLogModal({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl ring-1 ring-gray-100">
-        <h2 className="mb-5 text-base font-semibold text-gray-900">
-          {existingLog ? "Edit Time Entry" : "New Time Entry"}
-        </h2>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>
+            {existingLog ? "Edit Time Entry" : "New Time Entry"}
+          </DialogTitle>
+        </DialogHeader>
 
-        {overlapConflict && (
-          <div className="mb-4 rounded-lg bg-amber-50 px-3 py-2.5 text-sm text-amber-800 ring-1 ring-amber-200">
-            Overlaps with <span className="font-medium">&ldquo;{overlapConflict.title}&rdquo;</span> — adjust the times above to resolve before saving.
-          </div>
-        )}
+        <div className="space-y-4 py-2">
+          {overlapConflict && (
+            <div className="rounded-lg bg-amber-50 px-3 py-2.5 text-sm text-amber-800 ring-1 ring-amber-200">
+              Overlaps with{" "}
+              <span className="font-medium">
+                &ldquo;{overlapConflict.title}&rdquo;
+              </span>{" "}
+              — adjust the times above to resolve before saving.
+            </div>
+          )}
 
-        {error && (
-          <div className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-            {error}
-          </div>
-        )}
+          {error && (
+            <div className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {error}
+            </div>
+          )}
 
-        <div className="space-y-4">
           {/* Time row */}
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-gray-500">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Start
               </label>
               <select
                 value={startTime}
                 onChange={(e) => handleStartChange(e.target.value)}
-                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
               >
                 {timeOptions
                   .filter((o) => o.value < wdEnd)
@@ -272,14 +291,14 @@ export default function TimeLogModal({
                   ))}
               </select>
             </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-gray-500">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 End
               </label>
               <select
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
-                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
               >
                 {endOptions.map((o) => (
                   <option key={o.value} value={o.value}>
@@ -291,88 +310,76 @@ export default function TimeLogModal({
           </div>
 
           {/* Client */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-gray-500">
-              Client <span className="text-red-400">*</span>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Client <span className="text-destructive">*</span>
             </label>
-            <select
+            <Combobox
+              options={clientOptions}
               value={clientId}
-              onChange={(e) => setClientId(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="">Select a client…</option>
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.last_name}, {c.first_name}
-                </option>
-              ))}
-            </select>
+              onSelect={setClientId}
+              placeholder="Select a client…"
+              searchPlaceholder="Search clients…"
+              emptyText="No clients found."
+            />
           </div>
 
           {/* Grant */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-gray-500">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Grant
             </label>
-            <select
+            <Combobox
+              options={grantOptions}
               value={grantId}
-              onChange={(e) => setGrantId(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="">No grant</option>
-              {grants.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.grant_code} — {g.name}
-                </option>
-              ))}
-            </select>
+              onSelect={setGrantId}
+              placeholder="No grant"
+              searchPlaceholder="Search grants…"
+              emptyText="No grants found."
+            />
           </div>
 
           {/* Case note */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-gray-500">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Case Note Reference
             </label>
-            <input
-              type="text"
+            <Input
               value={caseNoteRef}
               onChange={(e) => setCaseNoteRef(e.target.value)}
               placeholder="Optional reference number or note"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
         </div>
 
-        <div className="mt-6 flex items-center justify-between">
+        <DialogFooter className="flex-row items-center justify-between sm:justify-between">
           <div>
             {existingLog && (
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={handleDelete}
                 disabled={loading}
-                className="rounded-lg px-3 py-2 text-sm font-medium text-red-500 hover:bg-red-50 disabled:opacity-50"
+                className="text-destructive hover:text-destructive"
               >
                 Delete
-              </button>
+              </Button>
             )}
           </div>
           <div className="flex gap-2">
-            <button
+            <Button
+              variant="outline"
               onClick={onClose}
               disabled={loading}
-              className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
             >
               Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={loading}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-            >
+            </Button>
+            <Button onClick={handleSave} disabled={loading}>
               {loading ? "Saving…" : "Save"}
-            </button>
+            </Button>
           </div>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
