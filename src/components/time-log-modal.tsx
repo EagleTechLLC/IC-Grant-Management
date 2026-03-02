@@ -142,6 +142,26 @@ export default function TimeLogModal({
     setLoading(true);
     setError(null);
     const supabase = createClient();
+
+    // Check for overlapping time logs for this caseworker
+    const overlapQuery = supabase
+      .from("time_logs")
+      .select("id")
+      .eq("caseworker_id", userId)
+      .lt("start_time", buildTimestamp(start, endTime))
+      .gt("end_time", buildTimestamp(start, startTime))
+      .limit(1);
+
+    const { data: overlaps } = await (existingLog
+      ? overlapQuery.neq("id", existingLog.id)
+      : overlapQuery);
+
+    if (overlaps && overlaps.length > 0) {
+      setError("This time block overlaps with an existing entry.");
+      setLoading(false);
+      return;
+    }
+
     const payload = {
       org_id: orgId,
       caseworker_id: userId,

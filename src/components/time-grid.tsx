@@ -117,7 +117,8 @@ export default function TimeGrid({
     fetchEvents(currentDate);
   }, [currentDate, fetchEvents]);
 
-  const handleSelectSlot = useCallback(({ start, end }: SlotInfo) => {
+  const handleSelectSlot = useCallback(({ start, end, action }: SlotInfo) => {
+    if (action !== "select") return;
     setModalStart(start);
     setModalEnd(end);
     setEditingLog(undefined);
