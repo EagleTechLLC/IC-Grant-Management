@@ -164,6 +164,8 @@ export default function TimeGrid({
         grants={grants}
         userId={userId}
         orgId={orgId}
+        workDayStart={workDayStart}
+        workDayEnd={workDayEnd}
         existingLog={editingLog}
         onSaved={() => fetchEvents(currentDate)}
       />
