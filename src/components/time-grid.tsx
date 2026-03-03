@@ -218,7 +218,7 @@ export default function TimeGrid({
           min={min}
           max={max}
           step={15}
-          timeslots={2}
+          timeslots={1}
           style={{ height: "100%" }}
         />
       </div>

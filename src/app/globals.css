@@ -113,17 +113,16 @@
   padding-right: 0.75rem;
 }
 
-/* Slot grid lines */
+/* Slot grid lines — no min-height override so DnD offset calc stays accurate */
 .rbc-timeslot-group {
   border-bottom: 1px solid #f3f4f6;
-  min-height: 40px;
 }
 
 .rbc-time-slot {
   border-top: none;
 }
 
-/* Hour separators are slightly darker */
+/* Every 4th group = one hour boundary, slightly darker */
 .rbc-timeslot-group:nth-child(4n) {
   border-bottom-color: #e5e7eb;
 }
@@ -174,6 +173,22 @@
 .rbc-event-label {
   font-size: 0.75rem;
   opacity: 0.85;
+}
+
+/* DnD resize handles — Notion-style grip bars */
+.rbc-addons-dnd-resize-ns-anchor {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 8px;
+  cursor: ns-resize;
+}
+
+.rbc-addons-dnd-resize-ns-icon {
+  width: 28px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 9999px;
 }
 
 /* Selecting (drag highlight) */
