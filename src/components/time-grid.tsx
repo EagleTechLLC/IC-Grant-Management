@@ -1,12 +1,15 @@
 "use client";
 
 import "react-big-calendar/lib/css/react-big-calendar.css";
+import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
 
 import { Calendar, dateFnsLocalizer, SlotInfo, Event } from "react-big-calendar";
+import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
 import { format, parse, startOfWeek, endOfWeek, getDay, startOfDay, endOfDay } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { useState, useCallback, useEffect } from "react";
 import type { View } from "react-big-calendar";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import TimeLogModal from "@/components/time-log-modal";
 
@@ -17,6 +20,8 @@ const localizer = dateFnsLocalizer({
   getDay,
   locales: { "en-US": enUS },
 });
+
+const DnDCalendar = withDragAndDrop<TimeLogEvent>(Calendar);
 
 interface Client {
   id: string;
@@ -125,6 +130,55 @@ export default function TimeGrid({
     fetchEvents(currentDate, currentView);
   }, [currentDate, currentView, fetchEvents]);
 
+  const handleDropOrResize = useCallback(
+    async ({
+      event,
+      start,
+      end,
+    }: {
+      event: TimeLogEvent;
+      start: Date | string;
+      end: Date | string;
+    }) => {
+      const newStart = new Date(start);
+      const newEnd = new Date(end);
+
+      const conflict = events.find(
+        (e) =>
+          e.id !== event.id &&
+          (e.start as Date) < newEnd &&
+          (e.end as Date) > newStart
+      );
+
+      if (conflict) {
+        toast.error(`Overlaps with "${conflict.title}"`);
+        return;
+      }
+
+      // Optimistically update local state for instant feedback
+      setEvents((prev) =>
+        prev.map((e) =>
+          e.id === event.id ? { ...e, start: newStart, end: newEnd } : e
+        )
+      );
+
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("time_logs")
+        .update({
+          start_time: newStart.toISOString(),
+          end_time: newEnd.toISOString(),
+        })
+        .eq("id", event.id);
+
+      if (error) {
+        toast.error("Failed to move entry — reverting.");
+        fetchEvents(currentDate, currentView);
+      }
+    },
+    [events, currentDate, currentView, fetchEvents]
+  );
+
   const handleSelectSlot = useCallback(({ start, end, action }: SlotInfo) => {
     if (action !== "select") return;
     setModalStart(start);
@@ -146,7 +200,7 @@ export default function TimeGrid({
   return (
     <>
       <div style={{ height: "680px" }}>
-        <Calendar<TimeLogEvent>
+        <DnDCalendar
           localizer={localizer}
           events={events}
           defaultView="day"
@@ -158,6 +212,9 @@ export default function TimeGrid({
           selectable
           onSelectSlot={handleSelectSlot}
           onSelectEvent={handleSelectEvent}
+          onEventDrop={handleDropOrResize}
+          onEventResize={handleDropOrResize}
+          resizable
           min={min}
           max={max}
           step={15}
