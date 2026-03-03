@@ -3,9 +3,10 @@
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
 import { Calendar, dateFnsLocalizer, SlotInfo, Event } from "react-big-calendar";
-import { format, parse, startOfWeek, getDay, startOfDay, endOfDay } from "date-fns";
+import { format, parse, startOfWeek, endOfWeek, getDay, startOfDay, endOfDay } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { useState, useCallback, useEffect } from "react";
+import type { View } from "react-big-calendar";
 import { createClient } from "@/lib/supabase/client";
 import TimeLogModal from "@/components/time-log-modal";
 
@@ -64,6 +65,7 @@ export default function TimeGrid({
 }: Props) {
   const [events, setEvents] = useState<TimeLogEvent[]>([]);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentView, setCurrentView] = useState<View>("day");
   const [modalOpen, setModalOpen] = useState(false);
   const [modalStart, setModalStart] = useState(new Date());
   const [modalEnd, setModalEnd] = useState(new Date());
@@ -72,16 +74,22 @@ export default function TimeGrid({
   >();
 
   const fetchEvents = useCallback(
-    async (date: Date) => {
+    async (date: Date, view: View) => {
       const supabase = createClient();
+      const rangeStart = view === "week"
+        ? startOfWeek(date, { weekStartsOn: 0 })
+        : startOfDay(date);
+      const rangeEnd = view === "week"
+        ? endOfWeek(date, { weekStartsOn: 0 })
+        : endOfDay(date);
       const { data } = await supabase
         .from("time_logs")
         .select(
           "id, start_time, end_time, case_note_ref, clients(id, first_name, last_name), grants(id, name, grant_code)"
         )
         .eq("caseworker_id", userId)
-        .gte("start_time", startOfDay(date).toISOString())
-        .lte("start_time", endOfDay(date).toISOString())
+        .gte("start_time", rangeStart.toISOString())
+        .lte("start_time", rangeEnd.toISOString())
         .order("start_time");
 
       if (!data) return;
@@ -114,8 +122,8 @@ export default function TimeGrid({
   );
 
   useEffect(() => {
-    fetchEvents(currentDate);
-  }, [currentDate, fetchEvents]);
+    fetchEvents(currentDate, currentView);
+  }, [currentDate, currentView, fetchEvents]);
 
   const handleSelectSlot = useCallback(({ start, end, action }: SlotInfo) => {
     if (action !== "select") return;
@@ -143,6 +151,8 @@ export default function TimeGrid({
           events={events}
           defaultView="day"
           views={["day", "week"]}
+          view={currentView}
+          onView={setCurrentView}
           date={currentDate}
           onNavigate={setCurrentDate}
           selectable
@@ -174,7 +184,7 @@ export default function TimeGrid({
           start: e.start as Date,
           end: e.end as Date,
         }))}
-        onSaved={() => fetchEvents(currentDate)}
+        onSaved={() => fetchEvents(currentDate, currentView)}
       />
     </>
   );
