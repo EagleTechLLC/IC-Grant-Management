@@ -7,7 +7,7 @@ import { Calendar, dateFnsLocalizer, SlotInfo, Event } from "react-big-calendar"
 import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
 import { format, parse, startOfWeek, endOfWeek, getDay, startOfDay, endOfDay } from "date-fns";
 import { enUS } from "date-fns/locale";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import type { View } from "react-big-calendar";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
@@ -52,6 +52,19 @@ interface Props {
   userId: string;
   orgId: string;
 }
+
+const GRANT_COLORS = [
+  "#7c3aed", // violet
+  "#db2777", // pink
+  "#d97706", // amber
+  "#059669", // emerald
+  "#dc2626", // red
+  "#0891b2", // cyan
+  "#ea580c", // orange
+  "#4f46e5", // indigo
+];
+
+const NO_GRANT_COLOR = "#3b82f6"; // blue
 
 function timeStringToDate(timeStr: string): Date {
   const [h, m] = timeStr.split(":").map(Number);
@@ -194,8 +207,29 @@ export default function TimeGrid({
     setModalOpen(true);
   }, []);
 
+  // Build grantId → color map (stable order from grants array)
+  const grantColorMap = useMemo(
+    () =>
+      Object.fromEntries(
+        grants.map((g, i) => [g.id, GRANT_COLORS[i % GRANT_COLORS.length]])
+      ),
+    [grants]
+  );
+
+  const eventPropGetter = useCallback(
+    (event: TimeLogEvent) => {
+      const color = event.resource.grantId
+        ? (grantColorMap[event.resource.grantId] ?? NO_GRANT_COLOR)
+        : NO_GRANT_COLOR;
+      return { style: { backgroundColor: color } };
+    },
+    [grantColorMap]
+  );
+
   const min = timeStringToDate(workDayStart);
-  const max = timeStringToDate(workDayEnd);
+  // Subtract 1 min from max so totalMin = numGroups × step exactly,
+  // fixing the 15-min DnD slot-snap offset caused by the library's +1.
+  const max = new Date(timeStringToDate(workDayEnd).getTime() - 60_000);
 
   return (
     <>
@@ -214,6 +248,7 @@ export default function TimeGrid({
           onSelectEvent={handleSelectEvent}
           onEventDrop={handleDropOrResize}
           onEventResize={handleDropOrResize}
+          eventPropGetter={eventPropGetter}
           resizable
           min={min}
           max={max}

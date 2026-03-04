@@ -151,7 +151,7 @@
 
 /* Events */
 .rbc-event {
-  background-color: #3b82f6;
+  background-color: #3b82f6; /* default; overridden per-event via eventPropGetter */
   border: none !important;
   border-radius: 6px !important;
   padding: 3px 8px !important;
@@ -162,12 +162,12 @@
 }
 
 .rbc-event:hover {
-  background-color: #2563eb !important;
+  filter: brightness(0.88);
 }
 
 .rbc-event.rbc-selected {
-  background-color: #1d4ed8 !important;
-  box-shadow: 0 0 0 2px #93c5fd;
+  filter: brightness(0.78);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6);
 }
 
 .rbc-event-label {
