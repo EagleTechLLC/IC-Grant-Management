@@ -66,6 +66,13 @@ const GRANT_COLORS = [
 
 const NO_GRANT_COLOR = "#3b82f6"; // blue
 
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return m
+    ? { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) }
+    : { r: 59, g: 130, b: 246 };
+}
+
 function timeStringToDate(timeStr: string): Date {
   const [h, m] = timeStr.split(":").map(Number);
   const d = new Date();
@@ -218,10 +225,19 @@ export default function TimeGrid({
 
   const eventPropGetter = useCallback(
     (event: TimeLogEvent) => {
-      const color = event.resource.grantId
+      const solid = event.resource.grantId
         ? (grantColorMap[event.resource.grantId] ?? NO_GRANT_COLOR)
         : NO_GRANT_COLOR;
-      return { style: { backgroundColor: color } };
+      const { r, g, b } = hexToRgb(solid);
+      return {
+        style: {
+          backgroundColor: `rgba(${r}, ${g}, ${b}, 0.12)`,
+          // Left stripe: inset box-shadow gives the Notion-style accent bar
+          boxShadow: `inset 4px 0 0 ${solid}`,
+          color: "#111827",
+          border: "none",
+        },
+      };
     },
     [grantColorMap]
   );
