@@ -186,8 +186,7 @@ Each migration file must be idempotent where possible (use `if not exists`, `if 
 
 | Migration | Applied to Dev | Applied to Prod |
 |---|---|---|
-| `20260302000001_work_day_settings.sql` | ✅ (applied manually via SQL editor) | ❌ |
+| `20260302000001_work_day_settings.sql` | ✅ | ❌ |
 | `20260330000000_grants_archived_at.sql` | ✅ | ❌ |
 | `20260330000001_activity_types.sql` | ✅ | ❌ |
 
-> **Note:** `20260302000001_work_day_settings.sql` was marked as applied via `supabase migration repair` before the CLI was set up, but the SQL was never actually run. It was applied manually via the Supabase dashboard SQL editor on 2026-03-30.
