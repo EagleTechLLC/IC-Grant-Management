@@ -26,7 +26,7 @@ export default async function AdminGrantsPage() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Grants</h1>
-        <GrantFormDialog createAction={createGrant} updateAction={updateGrant} />
+        <GrantFormDialog action={createGrant} />
       </div>
 
       <div className="rounded-lg border border-border">
@@ -58,22 +58,10 @@ export default async function AdminGrantsPage() {
             ) : (
               <>
                 {active.map((grant) => (
-                  <GrantRow
-                    key={grant.id}
-                    grant={grant}
-                    updateAction={updateGrant}
-                    archiveAction={archiveGrant}
-                    restoreAction={restoreGrant}
-                  />
+                  <GrantRow key={grant.id} grant={grant} />
                 ))}
                 {archived.map((grant) => (
-                  <GrantRow
-                    key={grant.id}
-                    grant={grant}
-                    updateAction={updateGrant}
-                    archiveAction={archiveGrant}
-                    restoreAction={restoreGrant}
-                  />
+                  <GrantRow key={grant.id} grant={grant} />
                 ))}
               </>
             )}
@@ -86,16 +74,15 @@ export default async function AdminGrantsPage() {
 
 function GrantRow({
   grant,
-  updateAction,
-  archiveAction,
-  restoreAction,
 }: {
   grant: { id: string; name: string; grant_code: string; archived_at: string | null };
-  updateAction: (id: string, formData: FormData) => Promise<void>;
-  archiveAction: (id: string) => Promise<void>;
-  restoreAction: (id: string) => Promise<void>;
 }) {
   const isArchived = !!grant.archived_at;
+  // .bind() produces a serializable server action — safe to pass to client components
+  const updateAction = updateGrant.bind(null, grant.id);
+  const toggleArchiveAction = isArchived
+    ? restoreGrant.bind(null, grant.id)
+    : archiveGrant.bind(null, grant.id);
 
   return (
     <tr className="border-b border-border last:border-0">
@@ -115,22 +102,9 @@ function GrantRow({
       <td className="px-4 py-3">
         <div className="flex items-center justify-end gap-1">
           {!isArchived && (
-            <GrantFormDialog
-              grant={grant}
-              createAction={async () => {}}
-              updateAction={updateAction}
-            />
+            <GrantFormDialog grant={grant} action={updateAction} />
           )}
-          <form
-            action={async () => {
-              "use server";
-              if (isArchived) {
-                await restoreAction(grant.id);
-              } else {
-                await archiveAction(grant.id);
-              }
-            }}
-          >
+          <form action={toggleArchiveAction}>
             <Button variant="ghost" size="sm" type="submit">
               {isArchived ? "Restore" : "Archive"}
             </Button>

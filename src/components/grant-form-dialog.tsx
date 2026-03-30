@@ -19,15 +19,11 @@ interface Grant {
 
 interface GrantFormDialogProps {
   grant?: Grant;
-  createAction: (formData: FormData) => Promise<void>;
-  updateAction: (id: string, formData: FormData) => Promise<void>;
+  // Single action — caller binds the id for edits, passes createGrant directly for new
+  action: (formData: FormData) => Promise<void>;
 }
 
-export default function GrantFormDialog({
-  grant,
-  createAction,
-  updateAction,
-}: GrantFormDialogProps) {
+export default function GrantFormDialog({ grant, action }: GrantFormDialogProps) {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
@@ -38,12 +34,8 @@ export default function GrantFormDialog({
     const formData = new FormData(e.currentTarget);
     setPending(true);
     try {
-      if (isEdit) {
-        await updateAction(grant.id, formData);
-      } else {
-        await createAction(formData);
-        formRef.current?.reset();
-      }
+      await action(formData);
+      if (!isEdit) formRef.current?.reset();
       setOpen(false);
     } finally {
       setPending(false);
