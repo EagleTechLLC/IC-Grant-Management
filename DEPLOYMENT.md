@@ -6,6 +6,17 @@
 
 Vercel deploys fast. If a migration runs after the new frontend is up, there is a window where the new code is hitting the old schema — this breaks the app for live users. Running the migration first means the old frontend works fine against the new schema while Vercel is deploying, and the new frontend works the moment it goes live.
 
+### Why we do this manually (for now)
+
+Supabase and Vercel both have automated migration-on-deploy features, but they require paid plans:
+
+- **Supabase Pro** — enables database branching, where each PR gets its own isolated DB branch seeded from production. Migrations are tested in isolation before merge, and the branch is destroyed when the PR closes.
+- **Vercel Pro + Supabase integration** — Vercel can trigger `supabase db push` as part of the deploy pipeline automatically.
+
+Until those are justified by team size or budget, we run `supabase db push` manually as part of the production deploy checklist. This is safe and reliable as long as the checklist is followed — the risk is human error (forgetting the step), not a technical limitation.
+
+When we upgrade, the manual checklist step goes away entirely and migrations run automatically before every deploy, for both preview and production environments.
+
 ---
 
 ## Environments
