@@ -19,16 +19,25 @@ interface Client {
   last_name: string;
 }
 
+interface ActivityType {
+  id: string;
+  name: string;
+  color: string;
+}
+
 interface Grant {
   id: string;
   name: string;
   grant_code: string;
+  color: string;
+  activityTypes: ActivityType[];
 }
 
 interface ExistingLog {
   id: string;
   clientId: string;
   grantId: string | null;
+  activityTypeId: string | null;
   caseNoteRef: string | null;
 }
 
@@ -120,6 +129,7 @@ export default function TimeLogModal({
   const [endTime, setEndTime] = useState(clamp(dateToTimeStr(end)));
   const [clientId, setClientId] = useState(existingLog?.clientId ?? "");
   const [grantId, setGrantId] = useState(existingLog?.grantId ?? "");
+  const [activityTypeId, setActivityTypeId] = useState(existingLog?.activityTypeId ?? "");
   const [caseNoteRef, setCaseNoteRef] = useState(existingLog?.caseNoteRef ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -130,10 +140,20 @@ export default function TimeLogModal({
     setEndTime(clamp(dateToTimeStr(end)));
     setClientId(existingLog?.clientId ?? "");
     setGrantId(existingLog?.grantId ?? "");
+    setActivityTypeId(existingLog?.activityTypeId ?? "");
     setCaseNoteRef(existingLog?.caseNoteRef ?? "");
     setError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, start, end, existingLog]);
+
+  // Reset activity type when grant changes
+  const handleGrantChange = (val: string) => {
+    setGrantId(val);
+    setActivityTypeId("");
+  };
+
+  const selectedGrant = grants.find((g) => g.id === grantId) ?? null;
+  const availableActivityTypes = selectedGrant?.activityTypes ?? [];
 
   const overlapConflict = useMemo(() => {
     const s = buildTimestamp(start, startTime);
@@ -158,7 +178,6 @@ export default function TimeLogModal({
 
   const endOptions = timeOptions.filter((o) => o.value > startTime);
 
-  // Build combobox options
   const clientOptions = clients.map((c) => ({
     value: c.id,
     label: `${c.last_name}, ${c.first_name}`,
@@ -169,6 +188,14 @@ export default function TimeLogModal({
     ...grants.map((g) => ({
       value: g.id,
       label: `${g.grant_code} — ${g.name}`,
+    })),
+  ];
+
+  const activityTypeOptions = [
+    { value: "", label: "No activity type" },
+    ...availableActivityTypes.map((at) => ({
+      value: at.id,
+      label: at.name,
     })),
   ];
 
@@ -186,7 +213,6 @@ export default function TimeLogModal({
     setError(null);
     const supabase = createClient();
 
-    // Server-side safety net for stale state
     const overlapQuery = supabase
       .from("time_logs")
       .select("id")
@@ -210,6 +236,7 @@ export default function TimeLogModal({
       caseworker_id: userId,
       client_id: clientId,
       grant_id: grantId || null,
+      activity_type_id: activityTypeId || null,
       start_time: buildTimestamp(start, startTime),
       end_time: buildTimestamp(start, endTime),
       case_note_ref: caseNoteRef || null,
@@ -332,12 +359,29 @@ export default function TimeLogModal({
             <Combobox
               options={grantOptions}
               value={grantId}
-              onSelect={setGrantId}
+              onSelect={handleGrantChange}
               placeholder="No grant"
               searchPlaceholder="Search grants…"
               emptyText="No grants found."
             />
           </div>
+
+          {/* Activity type — only shown when a grant is selected and has types */}
+          {grantId && availableActivityTypes.length > 0 && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Activity Type
+              </label>
+              <Combobox
+                options={activityTypeOptions}
+                value={activityTypeId}
+                onSelect={setActivityTypeId}
+                placeholder="No activity type"
+                searchPlaceholder="Search activity types…"
+                emptyText="No activity types found."
+              />
+            </div>
+          )}
 
           {/* Case note */}
           <div className="space-y-1.5">
@@ -367,11 +411,7 @@ export default function TimeLogModal({
             )}
           </div>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={onClose}
-              disabled={loading}
-            >
+            <Button variant="outline" onClick={onClose} disabled={loading}>
               Cancel
             </Button>
             <Button onClick={handleSave} disabled={loading}>

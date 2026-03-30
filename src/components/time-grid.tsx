@@ -7,7 +7,7 @@ import { Calendar, dateFnsLocalizer, SlotInfo, Event } from "react-big-calendar"
 import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
 import { format, parse, startOfWeek, endOfWeek, getDay, startOfDay, endOfDay } from "date-fns";
 import { enUS } from "date-fns/locale";
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type { View } from "react-big-calendar";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
@@ -29,10 +29,18 @@ interface Client {
   last_name: string;
 }
 
+interface ActivityType {
+  id: string;
+  name: string;
+  color: string;
+}
+
 interface Grant {
   id: string;
   name: string;
   grant_code: string;
+  color: string;
+  activityTypes: ActivityType[];
 }
 
 interface TimeLogEvent extends Event {
@@ -40,6 +48,9 @@ interface TimeLogEvent extends Event {
   resource: {
     clientId: string;
     grantId: string | null;
+    grantColor: string | null;
+    activityTypeId: string | null;
+    activityTypeColor: string | null;
     caseNoteRef: string | null;
   };
 }
@@ -53,18 +64,7 @@ interface Props {
   orgId: string;
 }
 
-const GRANT_COLORS = [
-  "#7c3aed", // violet
-  "#db2777", // pink
-  "#d97706", // amber
-  "#059669", // emerald
-  "#dc2626", // red
-  "#0891b2", // cyan
-  "#ea580c", // orange
-  "#4f46e5", // indigo
-];
-
-const NO_GRANT_COLOR = "#3b82f6"; // blue
+const NO_COLOR = "#3b82f6";
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
   const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -107,10 +107,11 @@ export default function TimeGrid({
       const rangeEnd = view === "week"
         ? endOfWeek(date, { weekStartsOn: 0 })
         : endOfDay(date);
+
       const { data } = await supabase
         .from("time_logs")
         .select(
-          "id, start_time, end_time, case_note_ref, clients(id, first_name, last_name), grants(id, name, grant_code)"
+          "id, start_time, end_time, case_note_ref, activity_type_id, clients(id, first_name, last_name), grants(id, name, grant_code, color), activity_types(id, name, color)"
         )
         .eq("caseworker_id", userId)
         .gte("start_time", rangeStart.toISOString())
@@ -122,7 +123,8 @@ export default function TimeGrid({
       setEvents(
         data.map((log) => {
           const client = log.clients as unknown as Client | null;
-          const grant = log.grants as unknown as Grant | null;
+          const grant = log.grants as unknown as (Grant & { color: string }) | null;
+          const activityType = log.activity_types as unknown as ActivityType | null;
           const clientName = client
             ? `${client.first_name} ${client.last_name}`
             : "Unknown";
@@ -137,6 +139,9 @@ export default function TimeGrid({
             resource: {
               clientId: client?.id ?? "",
               grantId: grant?.id ?? null,
+              grantColor: grant?.color ?? null,
+              activityTypeId: log.activity_type_id ?? null,
+              activityTypeColor: activityType?.color ?? null,
               caseNoteRef: log.case_note_ref,
             },
           };
@@ -175,7 +180,6 @@ export default function TimeGrid({
         return;
       }
 
-      // Optimistically update local state for instant feedback
       setEvents((prev) =>
         prev.map((e) =>
           e.id === event.id ? { ...e, start: newStart, end: newEnd } : e
@@ -214,37 +218,26 @@ export default function TimeGrid({
     setModalOpen(true);
   }, []);
 
-  // Build grantId → color map (stable order from grants array)
-  const grantColorMap = useMemo(
-    () =>
-      Object.fromEntries(
-        grants.map((g, i) => [g.id, GRANT_COLORS[i % GRANT_COLORS.length]])
-      ),
-    [grants]
-  );
-
-  const eventPropGetter = useCallback(
-    (event: TimeLogEvent) => {
-      const solid = event.resource.grantId
-        ? (grantColorMap[event.resource.grantId] ?? NO_GRANT_COLOR)
-        : NO_GRANT_COLOR;
-      const { r, g, b } = hexToRgb(solid);
-      return {
-        style: {
-          backgroundColor: `rgba(${r}, ${g}, ${b}, 0.12)`,
-          // Left stripe: inset box-shadow gives the Notion-style accent bar
-          boxShadow: `inset 4px 0 0 ${solid}`,
-          color: "#111827",
-          border: "none",
-        },
-      };
-    },
-    [grantColorMap]
-  );
+  const eventPropGetter = useCallback((event: TimeLogEvent) => {
+    // Left stripe = activity type color (what kind of work?)
+    // Background tint = grant color (who's paying?)
+    const stripeColor =
+      event.resource.activityTypeColor ??
+      event.resource.grantColor ??
+      NO_COLOR;
+    const bgColor = event.resource.grantColor ?? NO_COLOR;
+    const { r, g, b } = hexToRgb(bgColor);
+    return {
+      style: {
+        backgroundColor: `rgba(${r}, ${g}, ${b}, 0.12)`,
+        boxShadow: `inset 4px 0 0 ${stripeColor}`,
+        color: "#111827",
+        border: "none",
+      },
+    };
+  }, []);
 
   const min = timeStringToDate(workDayStart);
-  // Subtract 1 min from max so totalMin = numGroups × step exactly,
-  // fixing the 15-min DnD slot-snap offset caused by the library's +1.
   const max = new Date(timeStringToDate(workDayEnd).getTime() - 60_000);
 
   return (

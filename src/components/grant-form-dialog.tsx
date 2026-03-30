@@ -11,19 +11,31 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
+interface ActivityType {
+  id: string;
+  name: string;
+  color: string;
+}
+
 interface Grant {
   id: string;
   name: string;
   grant_code: string;
+  color: string;
+  activityTypeIds: string[];
 }
 
 interface GrantFormDialogProps {
   grant?: Grant;
-  // Single action — caller binds the id for edits, passes createGrant directly for new
   action: (formData: FormData) => Promise<void>;
+  activityTypes: ActivityType[];
 }
 
-export default function GrantFormDialog({ grant, action }: GrantFormDialogProps) {
+export default function GrantFormDialog({
+  grant,
+  action,
+  activityTypes,
+}: GrantFormDialogProps) {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
@@ -59,11 +71,11 @@ export default function GrantFormDialog({ grant, action }: GrantFormDialogProps)
         </DialogHeader>
         <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="name" className="text-sm font-medium">
+            <label htmlFor="grant-name" className="text-sm font-medium">
               Name
             </label>
             <Input
-              id="name"
+              id="grant-name"
               name="name"
               defaultValue={grant?.name}
               placeholder="e.g. Refugee Cash Assistance"
@@ -71,17 +83,60 @@ export default function GrantFormDialog({ grant, action }: GrantFormDialogProps)
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="grant_code" className="text-sm font-medium">
+            <label htmlFor="grant-code" className="text-sm font-medium">
               Grant Code
             </label>
             <Input
-              id="grant_code"
+              id="grant-code"
               name="grant_code"
               defaultValue={grant?.grant_code}
               placeholder="e.g. RCA-2026"
               required
             />
           </div>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="grant-color" className="text-sm font-medium">
+              Color
+            </label>
+            <div className="flex items-center gap-3">
+              <input
+                id="grant-color"
+                name="color"
+                type="color"
+                defaultValue={grant?.color ?? "#3b82f6"}
+                className="h-9 w-12 cursor-pointer rounded border border-input p-0.5"
+              />
+              <span className="text-sm text-muted-foreground">
+                Background tint on calendar events
+              </span>
+            </div>
+          </div>
+          {activityTypes.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium">Activity Types</span>
+              <div className="flex flex-col gap-1.5 rounded-md border border-input p-3">
+                {activityTypes.map((at) => (
+                  <label
+                    key={at.id}
+                    className="flex cursor-pointer items-center gap-2 text-sm"
+                  >
+                    <input
+                      type="checkbox"
+                      name="activity_type_ids"
+                      value={at.id}
+                      defaultChecked={grant?.activityTypeIds.includes(at.id)}
+                      className="rounded"
+                    />
+                    <div
+                      className="h-3 w-3 rounded-sm"
+                      style={{ backgroundColor: at.color }}
+                    />
+                    {at.name}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="flex justify-end gap-2">
             <Button
               type="button"

@@ -17,19 +17,39 @@ export default async function DashboardPage() {
     .single();
   if (!profile) redirect("/login?error=no-profile");
 
-  const [{ data: clients }, { data: grants }, { data: org }] =
+  const [{ data: clients }, { data: rawGrants }, { data: org }] =
     await Promise.all([
       supabase
         .from("clients")
         .select("id, first_name, last_name")
         .order("last_name"),
-      supabase.from("grants").select("id, name, grant_code").order("name"),
+      supabase
+        .from("grants")
+        .select(
+          "id, name, grant_code, color, grant_activity_types(activity_types(id, name, color))"
+        )
+        .is("archived_at", null)
+        .order("name"),
       supabase
         .from("organizations")
         .select("work_day_start, work_day_end")
         .eq("id", profile.org_id)
         .single(),
     ]);
+
+  const grants = (rawGrants ?? []).map((g) => ({
+    id: g.id,
+    name: g.name,
+    grant_code: g.grant_code,
+    color: g.color ?? "#3b82f6",
+    activityTypes: (
+      g.grant_activity_types as unknown as {
+        activity_types: { id: string; name: string; color: string } | null;
+      }[]
+    )
+      .map((gat) => gat.activity_types)
+      .filter((at): at is { id: string; name: string; color: string } => !!at),
+  }));
 
   return (
     <div>
@@ -41,7 +61,7 @@ export default async function DashboardPage() {
       </div>
       <TimeGrid
         clients={clients ?? []}
-        grants={grants ?? []}
+        grants={grants}
         workDayStart={org?.work_day_start ?? "08:00:00"}
         workDayEnd={org?.work_day_end ?? "16:30:00"}
         userId={user.id}
