@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,14 @@ export default async function DashboardLayout({
             International Center
           </span>
           <div className="flex items-center gap-3">
+            {profile.role === "admin" && (
+              <Link
+                href="/admin"
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
+                Admin
+              </Link>
+            )}
             <span className="text-sm text-muted-foreground">
               {profile.full_name}
             </span>
