@@ -77,6 +77,32 @@ supabase/
 - Prefer editing existing files over creating new ones.
 - Responsive design — works on desktop (primary) and mobile (secondary).
 
+### Server → Client Function Props (Next.js App Router)
+Never pass a plain function from a server component to a client component. React cannot serialize raw functions across the server/client boundary and will throw at runtime.
+
+**Allowed — server actions are serializable:**
+```tsx
+// actions.ts has "use server" at the top
+import { createGrant, updateGrant } from "./actions";
+
+// Direct: fine
+<Dialog action={createGrant} />
+
+// Bound (pre-fills an argument): fine
+<Dialog action={updateGrant.bind(null, grant.id)} />
+```
+
+**Not allowed:**
+```tsx
+// Plain anonymous function — not a server action
+<Dialog action={async (fd) => { await doSomething(fd) }} />
+
+// Inline "use server" that closes over a function prop — not serializable
+<form action={async () => { "use server"; await propFn(id); }} />
+```
+
+**Rule of thumb:** If a client component needs a mutation, it must receive a server action (from a `"use server"` file) or a `.bind()`-ed variant of one — nothing else.
+
 ## Architecture Decisions
 
 ### Multi-Tenancy
