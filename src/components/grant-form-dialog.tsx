@@ -11,6 +11,21 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
+const PRESET_COLORS = [
+  "#3b82f6", // blue
+  "#8b5cf6", // violet
+  "#ec4899", // pink
+  "#ef4444", // red
+  "#f97316", // orange
+  "#eab308", // yellow
+  "#22c55e", // green
+  "#14b8a6", // teal
+  "#06b6d4", // cyan
+  "#6366f1", // indigo
+  "#84cc16", // lime
+  "#64748b", // slate
+];
+
 interface ActivityType {
   id: string;
   name: string;
@@ -38,8 +53,17 @@ export default function GrantFormDialog({
 }: GrantFormDialogProps) {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
+  const [selectedColor, setSelectedColor] = useState(
+    grant?.color ?? PRESET_COLORS[0]
+  );
   const formRef = useRef<HTMLFormElement>(null);
   const isEdit = !!grant;
+
+  // Reset color when dialog opens
+  const handleOpenChange = (val: boolean) => {
+    if (val) setSelectedColor(grant?.color ?? PRESET_COLORS[0]);
+    setOpen(val);
+  };
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -55,7 +79,7 @@ export default function GrantFormDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {isEdit ? (
           <Button variant="ghost" size="sm">
@@ -95,21 +119,30 @@ export default function GrantFormDialog({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="grant-color" className="text-sm font-medium">
-              Color
-            </label>
-            <div className="flex items-center gap-3">
-              <input
-                id="grant-color"
-                name="color"
-                type="color"
-                defaultValue={grant?.color ?? "#3b82f6"}
-                className="h-9 w-12 cursor-pointer rounded border border-input p-0.5"
-              />
-              <span className="text-sm text-muted-foreground">
-                Background tint on calendar events
-              </span>
+            <span className="text-sm font-medium">Color</span>
+            <p className="text-xs text-muted-foreground">
+              Shows as background tint on calendar events
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {PRESET_COLORS.map((color) => (
+                <button
+                  key={color}
+                  type="button"
+                  onClick={() => setSelectedColor(color)}
+                  className="h-7 w-7 rounded-full transition-transform hover:scale-110 focus:outline-none"
+                  style={{
+                    backgroundColor: color,
+                    boxShadow:
+                      selectedColor === color
+                        ? `0 0 0 2px white, 0 0 0 4px ${color}`
+                        : "none",
+                  }}
+                  title={color}
+                />
+              ))}
             </div>
+            {/* Hidden input carries the selected color into FormData */}
+            <input type="hidden" name="color" value={selectedColor} />
           </div>
           {activityTypes.length > 0 && (
             <div className="flex flex-col gap-1.5">

@@ -11,6 +11,21 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
+const PRESET_COLORS = [
+  "#3b82f6", // blue
+  "#8b5cf6", // violet
+  "#ec4899", // pink
+  "#ef4444", // red
+  "#f97316", // orange
+  "#eab308", // yellow
+  "#22c55e", // green
+  "#14b8a6", // teal
+  "#06b6d4", // cyan
+  "#6366f1", // indigo
+  "#84cc16", // lime
+  "#64748b", // slate
+];
+
 interface ActivityType {
   id: string;
   name: string;
@@ -28,8 +43,16 @@ export default function ActivityTypeFormDialog({
 }: ActivityTypeFormDialogProps) {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
+  const [selectedColor, setSelectedColor] = useState(
+    activityType?.color ?? PRESET_COLORS[0]
+  );
   const formRef = useRef<HTMLFormElement>(null);
   const isEdit = !!activityType;
+
+  const handleOpenChange = (val: boolean) => {
+    if (val) setSelectedColor(activityType?.color ?? PRESET_COLORS[0]);
+    setOpen(val);
+  };
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -45,7 +68,7 @@ export default function ActivityTypeFormDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {isEdit ? (
           <Button variant="ghost" size="sm">
@@ -75,21 +98,29 @@ export default function ActivityTypeFormDialog({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="at-color" className="text-sm font-medium">
-              Color
-            </label>
-            <div className="flex items-center gap-3">
-              <input
-                id="at-color"
-                name="color"
-                type="color"
-                defaultValue={activityType?.color ?? "#6b7280"}
-                className="h-9 w-12 cursor-pointer rounded border border-input p-0.5"
-              />
-              <span className="text-sm text-muted-foreground">
-                Shown as the left stripe on calendar events
-              </span>
+            <span className="text-sm font-medium">Color</span>
+            <p className="text-xs text-muted-foreground">
+              Shows as left stripe on calendar events
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {PRESET_COLORS.map((color) => (
+                <button
+                  key={color}
+                  type="button"
+                  onClick={() => setSelectedColor(color)}
+                  className="h-7 w-7 rounded-full transition-transform hover:scale-110 focus:outline-none"
+                  style={{
+                    backgroundColor: color,
+                    boxShadow:
+                      selectedColor === color
+                        ? `0 0 0 2px white, 0 0 0 4px ${color}`
+                        : "none",
+                  }}
+                  title={color}
+                />
+              ))}
             </div>
+            <input type="hidden" name="color" value={selectedColor} />
           </div>
           <div className="flex justify-end gap-2">
             <Button
@@ -101,11 +132,7 @@ export default function ActivityTypeFormDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={pending}>
-              {pending
-                ? "Saving…"
-                : isEdit
-                  ? "Save Changes"
-                  : "Create"}
+              {pending ? "Saving…" : isEdit ? "Save Changes" : "Create"}
             </Button>
           </div>
         </form>
