@@ -4,12 +4,14 @@ import { createClient } from "@/lib/supabase/server";
 import AdminNavLink from "@/components/admin-nav-link";
 
 const adminNavItems = [
-  { href: "/admin", label: "Overview" },
-  { href: "/admin/team", label: "Team View" },
-  { href: "/admin/grants", label: "Grants" },
+  { href: "/admin",                label: "Overview" },
+  { href: "/admin/team",           label: "Team View" },
+  { href: "/admin/corrections",    label: "Corrections" },
+  { href: "/admin/audit-log",      label: "Audit Log" },
+  { href: "/admin/grants",         label: "Grants" },
   { href: "/admin/activity-types", label: "Activity Types" },
-  { href: "/admin/export", label: "Export" },
-  { href: "/admin/settings", label: "Settings" },
+  { href: "/admin/export",         label: "Export" },
+  { href: "/admin/settings",       label: "Settings" },
 ];
 
 export default async function AdminLayout({
@@ -30,9 +32,17 @@ export default async function AdminLayout({
     .eq("id", user.id)
     .single();
 
-  if (!profile || profile.role !== "admin") {
-    redirect("/dashboard");
-  }
+  if (!profile || profile.role !== "admin") redirect("/dashboard");
+
+  // Pending correction count for the badge
+  const { count: pendingCorrections } = await supabase
+    .from("time_log_corrections")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "pending");
+
+  const badges: Record<string, number> = {
+    "/admin/corrections": pendingCorrections ?? 0,
+  };
 
   return (
     <div className="flex gap-6">
@@ -48,7 +58,12 @@ export default async function AdminLayout({
         </div>
         <nav className="flex flex-col gap-1">
           {adminNavItems.map((item) => (
-            <AdminNavLink key={item.href} href={item.href} label={item.label} />
+            <AdminNavLink
+              key={item.href}
+              href={item.href}
+              label={item.label}
+              badge={badges[item.href]}
+            />
           ))}
         </nav>
       </aside>

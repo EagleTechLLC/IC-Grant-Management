@@ -32,7 +32,7 @@ export default async function DashboardPage() {
         .order("name"),
       supabase
         .from("organizations")
-        .select("work_day_start, work_day_end")
+        .select("work_day_start, work_day_end, time_slot_minutes, lock_after_days")
         .eq("id", profile.org_id)
         .single(),
     ]);
@@ -64,6 +64,8 @@ export default async function DashboardPage() {
         grants={grants}
         workDayStart={org?.work_day_start ?? "08:00:00"}
         workDayEnd={org?.work_day_end ?? "16:30:00"}
+        timeSlotMinutes={org?.time_slot_minutes ?? 15}
+        lockAfterDays={org?.lock_after_days ?? 0}
         userId={user.id}
         orgId={profile.org_id}
       />

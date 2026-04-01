@@ -52,6 +52,8 @@ interface TimeLogEvent extends Event {
     activityTypeId: string | null;
     activityTypeColor: string | null;
     caseNoteRef: string | null;
+    correctionOf: string | null;
+    isSuperseded: boolean;
   };
 }
 
@@ -60,6 +62,8 @@ interface Props {
   grants: Grant[];
   workDayStart: string;
   workDayEnd: string;
+  timeSlotMinutes: number;
+  lockAfterDays: number;
   userId: string;
   orgId: string;
 }
@@ -85,6 +89,8 @@ export default function TimeGrid({
   grants,
   workDayStart,
   workDayEnd,
+  timeSlotMinutes,
+  lockAfterDays,
   userId,
   orgId,
 }: Props) {
@@ -111,9 +117,10 @@ export default function TimeGrid({
       const { data } = await supabase
         .from("time_logs")
         .select(
-          "id, start_time, end_time, case_note_ref, activity_type_id, clients(id, first_name, last_name), grants(id, name, grant_code, color), activity_types(id, name, color)"
+          "id, start_time, end_time, case_note_ref, activity_type_id, correction_of, superseded_at, clients(id, first_name, last_name), grants(id, name, grant_code, color), activity_types(id, name, color)"
         )
         .eq("caseworker_id", userId)
+        .is("superseded_at", null) // hide entries replaced by an approved correction
         .gte("start_time", rangeStart.toISOString())
         .lte("start_time", rangeEnd.toISOString())
         .order("start_time");
@@ -128,9 +135,11 @@ export default function TimeGrid({
           const clientName = client
             ? `${client.first_name} ${client.last_name}`
             : "Unknown";
-          const title = grant
+          const baseTitle = grant
             ? `${clientName} — ${grant.grant_code}`
             : clientName;
+          // Append a marker if this entry is itself a correction of an older one
+          const title = log.correction_of ? `${baseTitle} ✎` : baseTitle;
           return {
             id: log.id,
             title,
@@ -143,6 +152,8 @@ export default function TimeGrid({
               activityTypeId: log.activity_type_id ?? null,
               activityTypeColor: activityType?.color ?? null,
               caseNoteRef: log.case_note_ref,
+              correctionOf: log.correction_of ?? null,
+              isSuperseded: !!log.superseded_at,
             },
           };
         })
@@ -261,7 +272,7 @@ export default function TimeGrid({
           resizable
           min={min}
           max={max}
-          step={15}
+          step={timeSlotMinutes}
           timeslots={1}
           style={{ height: "100%" }}
         />
@@ -278,6 +289,7 @@ export default function TimeGrid({
         orgId={orgId}
         workDayStart={workDayStart}
         workDayEnd={workDayEnd}
+        lockAfterDays={lockAfterDays}
         existingLog={editingLog}
         existingEvents={events.map((e) => ({
           id: e.id,
