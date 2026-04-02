@@ -25,6 +25,7 @@ interface ActivityType {
   id: string;
   name: string;
   color: string;
+  activity_code: string | null;
 }
 
 interface Grant {
@@ -208,7 +209,10 @@ export default function TimeLogModal({
   ];
   const activityTypeOptions = [
     { value: "", label: "No activity type" },
-    ...availableActivityTypes.map((at) => ({ value: at.id, label: at.name })),
+    ...availableActivityTypes.map((at) => ({
+      value: at.id,
+      label: at.activity_code ? `${at.activity_code} — ${at.name}` : at.name,
+    })),
   ];
 
   // ── Normal save (unlocked entry) ──────────────────────────────────────────

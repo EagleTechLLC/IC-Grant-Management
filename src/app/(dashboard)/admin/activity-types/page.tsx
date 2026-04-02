@@ -20,7 +20,7 @@ export default async function AdminActivityTypesPage() {
 
   const { data: activityTypes } = await supabase
     .from("activity_types")
-    .select("id, name, color, sort_order, archived_at")
+    .select("id, name, color, activity_code, sort_order, archived_at")
     .order("archived_at", { ascending: true, nullsFirst: true })
     .order("sort_order")
     .order("name");
@@ -46,6 +46,9 @@ export default async function AdminActivityTypesPage() {
           <thead>
             <tr className="border-b border-border bg-muted/50">
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                Code
+              </th>
+              <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                 Name
               </th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">
@@ -55,13 +58,14 @@ export default async function AdminActivityTypesPage() {
                 Status
               </th>
               <th className="px-4 py-3" />
+
             </tr>
           </thead>
           <tbody>
             {active.length === 0 && archived.length === 0 ? (
               <tr>
                 <td
-                  colSpan={4}
+                  colSpan={5}
                   className="px-4 py-8 text-center text-muted-foreground"
                 >
                   No activity types yet. Create one to get started.
@@ -91,6 +95,7 @@ function ActivityTypeRow({
     id: string;
     name: string;
     color: string;
+    activity_code: string | null;
     archived_at: string | null;
   };
 }) {
@@ -102,6 +107,9 @@ function ActivityTypeRow({
 
   return (
     <tr className="border-b border-border last:border-0">
+      <td className="px-4 py-3 font-mono text-sm text-muted-foreground">
+        {activityType.activity_code ?? <span className="italic">—</span>}
+      </td>
       <td className="px-4 py-3 font-medium">{activityType.name}</td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">

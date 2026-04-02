@@ -27,12 +27,14 @@ interface Client {
   id: string;
   first_name: string;
   last_name: string;
+  alien_number: string | null;
 }
 
 interface ActivityType {
   id: string;
   name: string;
   color: string;
+  activity_code: string | null;
 }
 
 interface Grant {

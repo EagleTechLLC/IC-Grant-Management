@@ -26,7 +26,7 @@ export default async function DashboardPage() {
       supabase
         .from("grants")
         .select(
-          "id, name, grant_code, color, grant_activity_types(activity_types(id, name, color))"
+          "id, name, grant_code, color, grant_activity_types(activity_types(id, name, color, activity_code))"
         )
         .is("archived_at", null)
         .order("name"),
@@ -48,7 +48,7 @@ export default async function DashboardPage() {
       }[]
     )
       .map((gat) => gat.activity_types)
-      .filter((at): at is { id: string; name: string; color: string } => !!at),
+      .filter((at): at is { id: string; name: string; color: string; activity_code: string | null } => !!at),
   }));
 
   return (

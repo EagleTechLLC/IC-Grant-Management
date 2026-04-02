@@ -30,6 +30,7 @@ interface ActivityType {
   id: string;
   name: string;
   color: string;
+  activity_code: string | null;
 }
 
 interface ActivityTypeFormDialogProps {
@@ -85,17 +86,32 @@ export default function ActivityTypeFormDialog({
           </DialogTitle>
         </DialogHeader>
         <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="at-name" className="text-sm font-medium">
-              Name
-            </label>
-            <Input
-              id="at-name"
-              name="name"
-              defaultValue={activityType?.name}
-              placeholder="e.g. Case Management"
-              required
-            />
+          <div className="flex gap-3">
+            <div className="flex flex-col gap-1.5 w-24 shrink-0">
+              <label htmlFor="at-code" className="text-sm font-medium">
+                Code
+              </label>
+              <Input
+                id="at-code"
+                name="activity_code"
+                defaultValue={activityType?.activity_code ?? ""}
+                placeholder="CM"
+                maxLength={10}
+                className="uppercase"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5 flex-1">
+              <label htmlFor="at-name" className="text-sm font-medium">
+                Name
+              </label>
+              <Input
+                id="at-name"
+                name="name"
+                defaultValue={activityType?.name}
+                placeholder="e.g. Case Management"
+                required
+              />
+            </div>
           </div>
           <div className="flex flex-col gap-1.5">
             <span className="text-sm font-medium">Color</span>
