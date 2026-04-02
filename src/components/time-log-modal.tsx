@@ -308,9 +308,11 @@ export default function TimeLogModal({
       : `${c.last_name}, ${c.first_name}`;
   })();
   const grantLabel = grants.find((g) => g.id === existingLog?.grantId)?.name ?? "No grant";
-  const atLabel = grants
-    .flatMap((g) => g.activityTypes)
-    .find((at) => at.id === existingLog?.activityTypeId)?.name ?? "None";
+  const atLabel = (() => {
+    const at = grants.flatMap((g) => g.activityTypes).find((at) => at.id === existingLog?.activityTypeId);
+    if (!at) return "None";
+    return at.activity_code ? `${at.activity_code} — ${at.name}` : at.name;
+  })();
 
   const formFields = (
     <>
