@@ -41,3 +41,19 @@ export async function updateTimeTrackingSettings(formData: FormData) {
   revalidatePath("/admin/settings");
   revalidatePath("/dashboard");
 }
+
+export async function updateAuditRetentionSettings(formData: FormData) {
+  const { supabase, orgId } = await requireAdmin();
+
+  const auditRetentionYears = parseInt(formData.get("audit_retention_years") as string, 10);
+
+  if (isNaN(auditRetentionYears) || auditRetentionYears < 1 || auditRetentionYears > 25) return;
+
+  const { error } = await supabase
+    .from("organizations")
+    .update({ audit_retention_years: auditRetentionYears })
+    .eq("id", orgId);
+
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/settings");
+}

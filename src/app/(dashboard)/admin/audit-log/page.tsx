@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 const TABLE_LABELS: Record<string, string> = {
   grants: "Grant",
   activity_types: "Activity Type",
+  grant_activity_types: "Grant ↔ Activity Type",
   profiles: "Profile",
   organizations: "Settings",
 };
