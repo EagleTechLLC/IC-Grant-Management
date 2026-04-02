@@ -18,6 +18,7 @@ interface Client {
   id: string;
   first_name: string;
   last_name: string;
+  alien_number: string | null;
 }
 
 interface ActivityType {
@@ -197,7 +198,9 @@ export default function TimeLogModal({
   const endOptions = timeOptions.filter((o) => o.value > startTime);
   const clientOptions = clients.map((c) => ({
     value: c.id,
-    label: `${c.last_name}, ${c.first_name}`,
+    label: c.alien_number
+      ? `${c.last_name}, ${c.first_name} (A# ${c.alien_number})`
+      : `${c.last_name}, ${c.first_name}`,
   }));
   const grantOptions = [
     { value: "", label: "No grant" },
@@ -293,9 +296,13 @@ export default function TimeLogModal({
   };
 
   // ── Lookup display helpers ────────────────────────────────────────────────
-  const clientLabel = clients.find((c) => c.id === existingLog?.clientId)
-    ? (() => { const c = clients.find((c) => c.id === existingLog!.clientId)!; return `${c.last_name}, ${c.first_name}`; })()
-    : "Unknown";
+  const clientLabel = (() => {
+    const c = clients.find((c) => c.id === existingLog?.clientId);
+    if (!c) return "Unknown";
+    return c.alien_number
+      ? `${c.last_name}, ${c.first_name} (A# ${c.alien_number})`
+      : `${c.last_name}, ${c.first_name}`;
+  })();
   const grantLabel = grants.find((g) => g.id === existingLog?.grantId)?.name ?? "No grant";
   const atLabel = grants
     .flatMap((g) => g.activityTypes)
