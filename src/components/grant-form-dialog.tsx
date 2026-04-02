@@ -30,6 +30,7 @@ interface ActivityType {
   id: string;
   name: string;
   color: string;
+  activity_code: string | null;
 }
 
 interface Grant {
@@ -164,6 +165,9 @@ export default function GrantFormDialog({
                       className="h-3 w-3 rounded-sm"
                       style={{ backgroundColor: at.color }}
                     />
+                    {at.activity_code && (
+                      <span className="font-mono text-xs text-muted-foreground">{at.activity_code}</span>
+                    )}
                     {at.name}
                   </label>
                 ))}

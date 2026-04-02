@@ -31,7 +31,7 @@ export default async function AdminGrantsPage() {
       .order("name"),
     supabase
       .from("activity_types")
-      .select("id, name, color")
+      .select("id, name, color, activity_code")
       .eq("org_id", profile.org_id)
       .is("archived_at", null)
       .order("sort_order")
@@ -129,7 +129,7 @@ function GrantRow({
     archived_at: string | null;
     activityTypeIds: string[];
   };
-  activityTypes: { id: string; name: string; color: string }[];
+  activityTypes: { id: string; name: string; color: string; activity_code: string | null }[];
 }) {
   const isArchived = !!grant.archived_at;
   const updateAction = updateGrant.bind(null, grant.id);
