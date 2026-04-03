@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "db:seed": "psql $DATABASE_URL -f supabase/seed.sql"
   },
   "dependencies": {
     "@sentry/nextjs": "^10.40.0",
